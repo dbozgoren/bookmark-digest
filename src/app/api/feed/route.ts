@@ -30,14 +30,23 @@ export async function GET(req: NextRequest) {
     signalType: row.signal_type ?? undefined,
   }));
 
-  // Fetch distinct categories (need high limit since Supabase default is 1000)
-  const { data: catData } = await supabase
-    .from("bookmarks")
-    .select("category")
-    .not("category", "is", null)
-    .limit(10000);
-
-  const categories = [...new Set((catData || []).map((c) => c.category as string))].sort();
+  // Fetch distinct categories by paginating (Supabase caps at 1000 rows)
+  const allCats: string[] = [];
+  let catOffset = 0;
+  const catBatchSize = 1000;
+  while (true) {
+    const { data: catBatch } = await supabase
+      .from("bookmarks")
+      .select("category")
+      .not("category", "is", null)
+      .range(catOffset, catOffset + catBatchSize - 1);
+    
+    if (!catBatch || catBatch.length === 0) break;
+    allCats.push(...catBatch.map((c) => c.category as string));
+    if (catBatch.length < catBatchSize) break;
+    catOffset += catBatchSize;
+  }
+  const categories = [...new Set(allCats)].sort();
 
   return NextResponse.json({ bookmarks, categories });
 }
