@@ -1,0 +1,28 @@
+#!/usr/bin/expect -f
+set timeout -1
+
+cd /Users/denizmini/GitRepos/bookmark-digest
+
+spawn claude --dangerously-skip-permissions {Read SPEC.md and build the Bookmark Digest PWA. Start with:
+1. Initialize Next.js project with TypeScript, Tailwind, App Router (pnpm)
+2. Build the Feed view with mock bookmark data (5-10 sample cards)
+3. Implement the three action buttons (derate/like/action) with local storage persistence
+4. Add the Action Queue view
+5. Make it mobile-first, dark mode, Twitter-like feel
+6. Deploy to Vercel when ready
+
+When completely finished, run this command to notify me:
+clawdbot gateway wake --text 'Done: Bookmark Digest v1 built and deployed' --mode now}
+
+# Wait for the bypass permissions confirmation
+expect {
+    "Yes, I accept" {
+        send "\033\[B\r"
+        exp_continue
+    }
+    "Do you want to proceed" {
+        send "\r"
+        exp_continue
+    }
+    eof
+}

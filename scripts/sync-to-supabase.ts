@@ -21,15 +21,15 @@ const projectRoot = path.resolve(__dirname, "..");
 loadEnv(path.join(projectRoot, ".env.local"));
 loadEnv(path.join(projectRoot, ".env"));
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const bookmarksPath = (process.env.BOOKMARKS_PATH || "~/clawd/bookmarks").replace(
   "~",
   process.env.HOME || ""
 );
 
 if (!supabaseUrl || !serviceKey) {
-  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_KEY");
+  console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
   process.exit(1);
 }
 
