@@ -1,32 +1,74 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { SignalType } from "@/lib/types";
 import { FeedBookmark, fetchFeed, sendSignal } from "@/lib/api";
 import Card from "./Card";
+
+const PAGE_SIZE = 20;
 
 export default function Feed() {
   const [bookmarks, setBookmarks] = useState<FeedBookmark[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const loaderRef = useRef<HTMLDivElement>(null);
 
-  const load = useCallback(async (category?: string) => {
-    setLoading(true);
+  const load = useCallback(async (category?: string, reset = true) => {
+    if (reset) {
+      setLoading(true);
+      setOffset(0);
+    } else {
+      setLoadingMore(true);
+    }
+
     try {
-      const data = await fetchFeed(20, 0, category);
-      setBookmarks(data.bookmarks);
+      const currentOffset = reset ? 0 : offset;
+      const data = await fetchFeed(PAGE_SIZE, currentOffset, category);
+      
+      if (reset) {
+        setBookmarks(data.bookmarks);
+      } else {
+        setBookmarks((prev) => [...prev, ...data.bookmarks]);
+      }
+      
       setCategories(data.categories);
+      setHasMore(data.bookmarks.length === PAGE_SIZE);
+      setOffset(currentOffset + data.bookmarks.length);
     } catch (e) {
       console.error("Failed to load feed:", e);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, []);
+  }, [offset]);
 
+  // Initial load
   useEffect(() => {
-    load(activeCategory);
-  }, [load, activeCategory]);
+    load(activeCategory, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCategory]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          load(activeCategory, false);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, activeCategory, load]);
 
   const handleSignal = async (bookmarkId: string, type: SignalType) => {
     if (type === "derate") {
@@ -41,7 +83,7 @@ export default function Feed() {
       await sendSignal(bookmarkId, type);
     } catch (e) {
       console.error("Failed to send signal:", e);
-      load(activeCategory);
+      load(activeCategory, true);
     }
   };
 
@@ -58,7 +100,7 @@ export default function Feed() {
         await sendSignal(bookmarkId, prevSignal, true);
       } catch (e) {
         console.error("Failed to clear signal:", e);
-        load(activeCategory);
+        load(activeCategory, true);
       }
     }
   };
@@ -108,15 +150,27 @@ export default function Feed() {
           <p className="text-sm mt-1">No more bookmarks to review.</p>
         </div>
       ) : (
-        bookmarks.map((bm) => (
-          <Card
-            key={bm.id}
-            bookmark={bm}
-            signal={bm.signalType}
-            onSignal={handleSignal}
-            onClear={handleClear}
-          />
-        ))
+        <>
+          {bookmarks.map((bm) => (
+            <Card
+              key={bm.id}
+              bookmark={bm}
+              signal={bm.signalType}
+              onSignal={handleSignal}
+              onClear={handleClear}
+            />
+          ))}
+          
+          {/* Infinite scroll trigger */}
+          <div ref={loaderRef} className="py-4 text-center">
+            {loadingMore && (
+              <p className="text-sm text-zinc-500">Loading more...</p>
+            )}
+            {!hasMore && bookmarks.length > 0 && (
+              <p className="text-sm text-zinc-600">You&apos;ve seen all {bookmarks.length} bookmarks</p>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
