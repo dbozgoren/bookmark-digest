@@ -43,6 +43,18 @@ interface ParsedBookmark {
   category: string;
   likes: number;
   starred: boolean;
+  bookmarkedAt: string | null; // ISO date extracted from tweet snowflake ID
+}
+
+// Extract timestamp from Twitter snowflake ID
+function snowflakeToDate(id: string): string | null {
+  try {
+    const snowflake = BigInt(id);
+    const timestamp = Number((snowflake >> 22n) + 1288834974657n);
+    return new Date(timestamp).toISOString();
+  } catch {
+    return null;
+  }
 }
 
 // Parse a category markdown file into bookmark entries
@@ -111,6 +123,7 @@ function finalize(partial: Partial<ParsedBookmark>, category: string): ParsedBoo
     category,
     likes: partial.likes || 0,
     starred: partial.starred || false,
+    bookmarkedAt: tweetIdMatch ? snowflakeToDate(tweetIdMatch[1]) : null,
   };
 }
 
@@ -161,6 +174,7 @@ async function sync() {
       url: bm.url,
       category: bm.category,
       raw_json: { likes: bm.likes, starred: bm.starred },
+      bookmarked_at: bm.bookmarkedAt,
     }));
 
     const { error, count } = await supabase
