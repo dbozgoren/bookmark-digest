@@ -4,12 +4,21 @@ export interface FeedBookmark extends Bookmark {
   signalType?: SignalType;
 }
 
-export async function fetchFeed(limit = 20, offset = 0): Promise<FeedBookmark[]> {
+export interface FeedResponse {
+  bookmarks: FeedBookmark[];
+  categories: string[];
+}
+
+export async function fetchFeed(
+  limit = 20,
+  offset = 0,
+  category?: string
+): Promise<FeedResponse> {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (category) params.set("category", category);
   const res = await fetch(`/api/feed?${params}`);
   if (!res.ok) throw new Error("Failed to fetch feed");
-  const { bookmarks } = await res.json();
-  return bookmarks;
+  return res.json();
 }
 
 export async function fetchQueue(): Promise<Bookmark[]> {

@@ -6,6 +6,7 @@ export interface Bookmark {
   category: string;
   bookmarkedAt: string; // ISO date
   url?: string;
+  media?: string[]; // image/video thumbnail URLs
 }
 
 export type SignalType = "derate" | "like" | "action";
@@ -36,6 +37,9 @@ export interface BookmarkRow {
 }
 
 export function rowToBookmark(row: BookmarkRow): Bookmark {
+  const raw = row.raw_json as Record<string, unknown> | null;
+  const media = Array.isArray(raw?.media) ? (raw.media as string[]) : undefined;
+
   return {
     id: row.id,
     author: row.author,
@@ -44,5 +48,6 @@ export function rowToBookmark(row: BookmarkRow): Bookmark {
     category: row.category ?? "uncategorized",
     bookmarkedAt: row.bookmarked_at ?? row.synced_at,
     url: row.url ?? undefined,
+    media: media?.length ? media : undefined,
   };
 }

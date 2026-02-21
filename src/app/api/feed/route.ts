@@ -30,5 +30,13 @@ export async function GET(req: NextRequest) {
     signalType: row.signal_type ?? undefined,
   }));
 
-  return NextResponse.json({ bookmarks });
+  // Fetch distinct categories
+  const { data: catData } = await supabase
+    .from("bookmarks")
+    .select("category")
+    .not("category", "is", null);
+
+  const categories = [...new Set((catData || []).map((c) => c.category as string))].sort();
+
+  return NextResponse.json({ bookmarks, categories });
 }
