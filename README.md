@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bookmark Digest
 
-## Getting Started
+Digest your Twitter bookmarks through second-round curation. A mobile-first PWA backed by Supabase.
 
-First, run the development server:
+## How it works
+
+1. **Bird sync** exports Twitter bookmarks to `~/clawd/bookmarks/` as categorized markdown
+2. **Sync script** parses the markdown and upserts to Supabase
+3. **PWA** serves the feed for triage — derate, like, or mark for action
+
+## Setup
+
+### 1. Supabase
+
+Create a project (or reuse existing) and run `supabase/schema.sql` in the SQL editor.
+
+### 2. Environment
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Fill in your Supabase credentials:
+- `NEXT_PUBLIC_SUPABASE_URL` — project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — anon/public key
+- `SUPABASE_SERVICE_KEY` — service role key (for API routes + sync)
+- `BOOKMARKS_PATH` — path to bookmark markdown files (default: `~/clawd/bookmarks`)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Install and sync
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm install
+pnpm run sync    # import bookmarks to Supabase
+pnpm dev         # start dev server
+```
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start development server |
+| `pnpm build` | Production build |
+| `pnpm sync` | Sync bookmarks from local files to Supabase |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Architecture
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+Twitter → bird sync → ~/clawd/bookmarks/ (markdown)
+                              ↓
+                     sync-to-supabase.ts
+                              ↓
+                          Supabase
+                              ↓
+                      Next.js PWA (API routes)
+```
 
-## Deploy on Vercel
+## Signals
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Signal | Effect |
+|--------|--------|
+| Derate | Hide from feed |
+| Like | Boost in feed |
+| Action | Add to action queue |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Tech
+
+- Next.js 16 (App Router)
+- Supabase (Postgres)
+- Tailwind v4
+- PWA (installable)
