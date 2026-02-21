@@ -30,11 +30,12 @@ export async function GET(req: NextRequest) {
     signalType: row.signal_type ?? undefined,
   }));
 
-  // Fetch distinct categories
+  // Fetch distinct categories (need high limit since Supabase default is 1000)
   const { data: catData } = await supabase
     .from("bookmarks")
     .select("category")
-    .not("category", "is", null);
+    .not("category", "is", null)
+    .limit(10000);
 
   const categories = [...new Set((catData || []).map((c) => c.category as string))].sort();
 
