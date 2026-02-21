@@ -12,10 +12,12 @@ export interface FeedResponse {
 export async function fetchFeed(
   limit = 20,
   offset = 0,
-  category?: string
+  category?: string,
+  search?: string
 ): Promise<FeedResponse> {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
   if (category) params.set("category", category);
+  if (search) params.set("q", search);
   const res = await fetch(`/api/feed?${params}`);
   if (!res.ok) throw new Error("Failed to fetch feed");
   return res.json();

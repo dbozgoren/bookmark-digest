@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(Number(searchParams.get("limit") || 20), 100);
   const offset = Number(searchParams.get("offset") || 0);
   const category = searchParams.get("category");
+  const search = searchParams.get("q")?.trim();
 
   const supabase = getSupabase();
   let query = supabase
@@ -17,6 +18,11 @@ export async function GET(req: NextRequest) {
 
   if (category) {
     query = query.eq("category", category);
+  }
+
+  if (search) {
+    // Search in text and author fields
+    query = query.or(`text.ilike.%${search}%,author.ilike.%${search}%`);
   }
 
   const { data, error } = await query;
